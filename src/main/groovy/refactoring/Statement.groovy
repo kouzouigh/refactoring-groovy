@@ -1,71 +1,45 @@
 package refactoring
 
-
 import java.text.NumberFormat
 
 class Statement {
 
+    def usd = { aNumber ->
+        def format = NumberFormat.getCurrencyInstance(new Locale("en", "US"))
+        format.setMinimumFractionDigits(2)
+        return format.format(aNumber / 100)
+    }
+
     def statement(invoice, plays) {
-        def statementResult = "Statement for ${invoice.customer}\n"
-        def playFor = { aPerformance ->
-            plays[aPerformance.playID]
-        }
-        def amountFor =  { aPerformance ->
-            def result = 0
-            switch (playFor(aPerformance).type) {
-                case "tragedy":
-                    result = 40000
-                    if (aPerformance.audience > 30) {
-                        result += 1000 * (aPerformance.audience - 30)
-                    }
-                    break
-                case "comedy":
-                    result = 30000
-                    if (aPerformance.audience > 20) {
-                        result += 10000 + 500 * (aPerformance.audience - 20)
-                    }
-                    result += 300 * aPerformance.audience
-                    break
-                default:
-                    throw new Error("unknown type: ${playFor(aPerformance).type}")
-            }
-            result
-        }
-        def volumeCreditsFor = { aPerformance ->
-            def result = 0
-            result += Math.max(aPerformance.audience - 30, 0)
-            if ("comedy" == playFor(aPerformance).type) result += Math.floor(aPerformance.audience / 5)
-            result
-        }
-        def usd = { aNumber ->
-            def format = NumberFormat.getCurrencyInstance(new Locale("en", "US"))
-            format.setMinimumFractionDigits(2)
-            return format.format(aNumber / 100)
-        }
-        def totalVolumeCredits = {
-            def volumeCredits = 0
-            for (def perf in invoice.performances) {
-                volumeCredits += volumeCreditsFor(perf)
-            }
-            volumeCredits
-        }
-        def totalAmount = {
-            def result = 0
-            for (def perf in invoice.performances) {
-                result += amountFor(perf)
-            }
-            result
-        }
+        return renderPlainText(CreateStatementData.from(invoice, plays))
+    }
 
-        for (def perf in invoice.performances) {
-            // print line for this order
-            statementResult += " ${playFor(perf).name}: ${usd(amountFor(perf))} (${perf.audience} seats)\n"
+    def htmlStatement(invoice, plays) {
+        return renderHtml(CreateStatementData.from(invoice, plays));
+    }
+
+    private def renderPlainText(data) {
+        def statementResult = "Statement for ${data.customer}\n"
+        for (def perf in data.performances) {
+            statementResult += " ${perf.play.name}: ${usd(perf.amount)} (${perf.audience} seats)\n"
         }
-
-        statementResult += "Amount owed is ${usd(totalAmount())}\n"
-        statementResult += "You earned ${totalVolumeCredits()} credits\n"
-
+        statementResult += "Amount owed is ${usd(data.totalAmount)}\n"
+        statementResult += "You earned ${data.totalVolumeCredits} credits\n"
         return statementResult
+    }
+
+    def renderHtml(data) {
+        def result = "<h1>Statement for ${data.customer}</h1>\n"
+        result += "<table>\n"
+        result += "<tr><th>play</th><th>seats</th><th>cost</th></tr>"
+        for (def perf in data.performances) {
+            result += " <tr><td>${perf.play.name}</td><td>${perf.audience}</td>"
+            result += "<td>${usd(perf.amount)}</td></tr>\n"
+        }
+        result += "</table>\n"
+        result += "<p>Amount owed is <em>${usd(data.totalAmount)}</em></p>\n"
+        result += "<p>You earned <em>${data.totalVolumeCredits}</em> credits</p>\n"
+        return result
     }
 
 }
