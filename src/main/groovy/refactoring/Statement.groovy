@@ -7,7 +7,6 @@ class Statement {
 
     def statement(invoice, plays) {
         def totalAmount = 0
-        def volumeCredits = 0
         def statementResult = "Statement for ${invoice.customer}\n"
         def playFor = { aPerformance ->
             plays[aPerformance.playID]
@@ -44,16 +43,22 @@ class Statement {
             format.setMinimumFractionDigits(2)
             return format.format(aNumber / 100)
         }
+        def totalVolumeCredits = {
+            def volumeCredits = 0
+            for (def perf in invoice.performances) {
+                volumeCredits += volumeCreditsFor(perf)
+            }
+            volumeCredits
+        }
 
         for (def perf in invoice.performances) {
-            volumeCredits += volumeCreditsFor(perf)
-
             // print line for this order
             statementResult += " ${playFor(perf).name}: ${usd(amountFor(perf))} (${perf.audience} seats)\n"
             totalAmount += amountFor(perf)
         }
+
         statementResult += "Amount owed is ${usd(totalAmount)}\n"
-        statementResult += "You earned ${volumeCredits} credits\n"
+        statementResult += "You earned ${totalVolumeCredits()} credits\n"
 
         return statementResult
     }
