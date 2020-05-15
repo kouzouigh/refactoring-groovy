@@ -6,7 +6,6 @@ import java.text.NumberFormat
 class Statement {
 
     def statement(invoice, plays) {
-        def totalAmount = 0
         def statementResult = "Statement for ${invoice.customer}\n"
         def playFor = { aPerformance ->
             plays[aPerformance.playID]
@@ -50,14 +49,20 @@ class Statement {
             }
             volumeCredits
         }
+        def totalAmount = {
+            def result = 0
+            for (def perf in invoice.performances) {
+                result += amountFor(perf)
+            }
+            result
+        }
 
         for (def perf in invoice.performances) {
             // print line for this order
             statementResult += " ${playFor(perf).name}: ${usd(amountFor(perf))} (${perf.audience} seats)\n"
-            totalAmount += amountFor(perf)
         }
 
-        statementResult += "Amount owed is ${usd(totalAmount)}\n"
+        statementResult += "Amount owed is ${usd(totalAmount())}\n"
         statementResult += "You earned ${totalVolumeCredits()} credits\n"
 
         return statementResult
