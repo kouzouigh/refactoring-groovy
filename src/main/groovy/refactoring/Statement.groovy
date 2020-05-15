@@ -9,8 +9,6 @@ class Statement {
         def totalAmount = 0
         def volumeCredits = 0
         def statementResult = "Statement for ${invoice.customer}\n"
-        def format = NumberFormat.getCurrencyInstance(new Locale("en", "US"))
-        format.setMinimumFractionDigits(2)
         def playFor = { aPerformance ->
             plays[aPerformance.playID]
         }
@@ -41,15 +39,20 @@ class Statement {
             if ("comedy" == playFor(aPerformance).type) result += Math.floor(aPerformance.audience / 5)
             result
         }
+        def usd = { aNumber ->
+            def format = NumberFormat.getCurrencyInstance(new Locale("en", "US"))
+            format.setMinimumFractionDigits(2)
+            return format.format(aNumber / 100)
+        }
 
         for (def perf in invoice.performances) {
             volumeCredits += volumeCreditsFor(perf)
 
             // print line for this order
-            statementResult += " ${playFor(perf).name}: ${format.format(amountFor(perf) / 100)} (${perf.audience} seats)\n"
+            statementResult += " ${playFor(perf).name}: ${usd(amountFor(perf))} (${perf.audience} seats)\n"
             totalAmount += amountFor(perf)
         }
-        statementResult += "Amount owed is ${format.format(totalAmount / 100)}\n"
+        statementResult += "Amount owed is ${usd(totalAmount)}\n"
         statementResult += "You earned ${volumeCredits} credits\n"
 
         return statementResult
