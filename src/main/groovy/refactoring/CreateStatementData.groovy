@@ -34,9 +34,10 @@ class CreateStatementData {
       result
     }
     def enrichPerformance = { aPerformance ->
+      final def calculator = new PerformanceCalculator(aPerformance, playFor(aPerformance))
       def result = [:]
       result << aPerformance
-      result.play = playFor(aPerformance)
+      result.play = calculator.play
       result.amount = amountFor(result)
       result.volumeCredits = volumeCreditsFor(result)
       result
